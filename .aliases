@@ -401,6 +401,12 @@ brew-apps() {
   return $rc
 }
 
+
+# ----------------------------------------------------------------------
+# Raspberry
+alias rb="ssh jimmys@raspberry.local"
+
+
 # ----------------------------------------------------------------------
 # Others
 
@@ -439,7 +445,6 @@ al() {
     done
 }
 
-
 # ----------------------------------------------------------------------
 # Prompt (starship)
 # El prompt muestra " — 🔄 (N)" después de la región de AWS, donde N es el número de
@@ -447,11 +452,6 @@ al() {
 # se recalcula solo cada hora y al final de brew-apps.
 # Recalcula ahora el contador de actualizaciones del prompt
 alias brew-refresh="brew-outdated-count --refresh"
-
-# ----------------------------------------------------------------------
-# Raspberry
-alias rb="ssh jimmys@raspberry.local"
-
 
 # open ~/.zshrc in using the default editor specified in $EDITOR
 alias ec="zed ~/.zshrc"
