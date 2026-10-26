@@ -1,0 +1,460 @@
+# ----------------------------------------------------------------------
+# Aliases
+# ----------------------------------------------------------------------
+
+alias ..="cd .."
+alias cls=clear          # Clear your terminal screen
+
+# Colores de ls -G (macOS). El primer par es el de las carpetas: "Dx" = amarillo en negrita
+# (antes "ex" = azul, que se confundía con el fondo). El resto son los valores por defecto.
+export LSCOLORS="Dxfxcxdxbxegedabagacad"
+
+alias lsl="ls -l -G"     # List all files in current directory
+alias lsla="ls -la -G"   # List all files and directories (color) in current directory
+alias lsd="ls -ld */"    # List all directories in current directory in long list format
+alias lsdh="ls -ld .*/ */"    # List all directories in current directory in long list format, included hidden
+
+# list all files/directories starting with the given prefix
+lss() {
+    echo "${YELLOW}ls -ld -G $1*${NOCOLOR}"
+    ls -ld -G $1*        # list all files starting with parameter input %1
+}
+
+# ----------------------------------------------------------------------
+# Routes
+
+# cd into a project folder under ~/Documents/Gameaddik
+cdg() {
+    cd ~/Documents/Gameaddik/"$1"
+}
+
+# cd into a repo folder under ~/Documents/Gameaddik/Repos
+cdgr() {
+    cd ~/Documents/Gameaddik/Repos/"$1"
+}
+
+
+alias cathosts="cat /etc/hosts"
+alias vihosts="sudo vi /etc/hosts"
+
+# ----------------------------------------------------------------------
+# Python
+
+
+# ----------------------------------------------------------------------
+# Docker
+
+#docker compose ps --service
+
+alias d-c="docker compose"
+
+# stop and remove containers from docker-compose
+d-cdown() {
+    echo "${YELLOW}docker compose down${NOCOLOR}"
+    docker compose down
+}
+
+# start containers from docker-compose in detached mode
+d-cup() {
+    echo "${YELLOW}docker compose up -d${NOCOLOR}"
+    docker compose up -d
+}
+
+# remove unused docker data (stopped containers, dangling images, networks)
+d-prune() {
+    echo "${YELLOW}docker system prune -f${NOCOLOR}"
+    docker system prune -f
+}
+
+# list running containers
+d-ps() {
+    echo "${YELLOW}docker ps${NOCOLOR}"
+    docker ps
+}
+
+# shortcut for any docker command, e.g. d ps -a
+d() {
+    echo "${YELLOW}docker $@${NOCOLOR}"
+    docker "$@"
+}
+
+# ----------------------------------------------------------------------
+# GIT
+
+# show working tree status
+gs() {
+    echo "${YELLOW}git status${NOCOLOR}"
+    git status
+}
+# alias for gs
+gstatus() {
+    gs
+}
+
+# stage files, e.g. ga file1 file2
+ga() {
+    echo "${YELLOW}git add $@${NOCOLOR}"
+    git add "$@"
+}
+
+# stage all changes
+gaa() {
+    echo "${YELLOW}git add -A${NOCOLOR}"
+    git add -A
+}
+
+# list local branches
+gb() {
+    cls
+    echo "${YELLOW}git branch${NOCOLOR}"
+    git branch
+}
+# alias for gb
+gbranch() {
+    gb
+}
+
+#list both local and remote branches
+gba() {
+    cls
+    echo "${YELLOW}git branch -a${NOCOLOR}"
+    git branch -a
+}
+# alias for gba
+gbrancha() {
+    gba
+}
+
+#list only remote branches
+gbr() {
+    cls
+    echo "${YELLOW}git branch -r${NOCOLOR}"
+    git branch -r
+}
+# alias for gbr
+gbranchr() {
+    gbr
+}
+
+# checkout the given branch
+gco() {
+    echo "${YELLOW}git checkout $1${NOCOLOR}"
+    git checkout "$1"
+}
+# alias for gco
+gcheckout() {
+    gco "$1"
+}
+
+#list the commits waiting to be pushed
+gcherry() {
+    echo "${YELLOW}git cherry -v${NOCOLOR}"
+    git cherry -v
+}
+
+# commit staged changes, e.g. gc -m "message"
+gc() {
+    echo "${YELLOW}git commit $1${NOCOLOR}"
+    git commit "$@"
+}
+# alias for gc
+gcommit() {
+    gc "$@"
+}
+
+# show unstaged changes
+gd() {
+    echo "${YELLOW}git diff${NOCOLOR}"
+    git diff
+}
+
+# show diff stats between staged changes and origin's current branch
+gdiff() {
+    echo "${YELLOW}git diff --stat --cached origin/`git branch --show-current`${NOCOLOR}"
+    git diff --stat --cached origin/`git branch --show-current`
+}
+
+# fetch changes from remote
+gf() {
+    cls
+    echo "${YELLOW}git fetch${NOCOLOR}"
+    git fetch
+}
+# alias for gf
+gfetch() {
+    gf
+}
+
+# show commit log, one line per commit
+gl() {
+    cls
+    echo "${YELLOW}git log --oneline${NOCOLOR}"
+    git log --oneline
+}
+# alias for gl
+glog() {
+    gl
+}
+
+# show commit log as a graph, with all branches
+glol() {
+    cls
+    echo "${YELLOW}git log --oneline --graph --decorate --all${NOCOLOR}"
+    git log --oneline --graph --decorate --all
+}
+
+# pull from remote
+gp() {
+    echo "${YELLOW}git pull${NOCOLOR}"
+    git pull
+}
+# alias for gp
+gpull() {
+    gp
+}
+
+# push to remote
+gpush() {
+    echo "${YELLOW}git push${NOCOLOR}"
+    git push
+}
+
+# undo the last commit but keep the changes staged
+gundo() {
+    echo "${YELLOW}git reset --soft HEAD~1${NOCOLOR}"
+    git reset --soft HEAD~1
+}
+
+# list branches inside each git submodule
+gsgb() {
+    echo "${YELLOW}git submodule foreach 'git branch'${NOCOLOR}"
+    git submodule foreach 'git branch'
+}
+
+# forget to create a new branch, and made all your changes in the wrong branch?
+# Moves all your changes to your newly created branch.
+# git switch -c "new_branch"
+
+
+# ----------------------------------------------------------------------
+# Terminal tab customization (iTerm2, auto-detected)
+
+# uses OSC 6, a native iTerm2 feature: it only colors the tab bar, never the terminal content background
+# helper for tabcolor: sets the current tab color from a hex code, e.g. _iterm_set_tab_color "#2d4159"
+_iterm_set_tab_color() {
+    local hex="${1#\#}"
+    local r=$((16#${hex:0:2}))
+    local g=$((16#${hex:2:2}))
+    local b=$((16#${hex:4:2}))
+    printf '\033]6;1;bg;red;brightness;%d\007' "$r"
+    printf '\033]6;1;bg;green;brightness;%d\007' "$g"
+    printf '\033]6;1;bg;blue;brightness;%d\007' "$b"
+}
+
+# curated palette of eye-friendly colors, usable by name in tabcolor/tabcolors
+typeset -a TABCOLOR_NAMES=(
+    "blue1" "green1" "red1" "yellow1" "purple1" "orange1" "cyan1" "gray1"
+)
+typeset -A TABCOLOR_PALETTE=(
+    "blue1"   "#2d4159"
+    "green1"  "#33513c"
+    "red1"    "#5c3535"
+    "yellow1" "#5c4d2d"
+    "purple1" "#3d3157"
+    "orange1" "#5c4433"
+    "cyan1"   "#2d5c56"
+    "gray1"   "#3b4252"
+)
+typeset -A TABCOLOR_LABELS=(
+    "blue1"   "Azul suave"
+    "green1"  "Verde suave"
+    "red1"    "Rojo suave"
+    "yellow1" "Amarillo mostaza"
+    "purple1" "Morado suave"
+    "orange1" "Naranja suave"
+    "cyan1"   "Cyan suave"
+    "gray1"   "Gris azulado"
+)
+
+# preview the curated palette rendered with its real color: swatch, full name, hex, short name
+tabcolors() {
+    local name label hex r g b
+    for name in "${TABCOLOR_NAMES[@]}"; do
+        hex="${TABCOLOR_PALETTE[$name]}"
+        label="${TABCOLOR_LABELS[$name]}"
+        r=$((16#${hex:1:2}))
+        g=$((16#${hex:3:2}))
+        b=$((16#${hex:5:2}))
+        printf "\e[48;2;%d;%d;%dm    \e[0m  %-18s %-10s %s\n" "$r" "$g" "$b" "$label" "$hex" "$name"
+    done
+}
+
+# set the current tab's background color, e.g. tabcolor blue1 or tabcolor "#1e3a5f"
+# iTerm2 (native OSC 6 tab color)
+tabcolor() {
+    local input="${(L)*}"
+    local hex="${TABCOLOR_PALETTE[$input]:-$*}"
+    if [[ -n "$KITTY_WINDOW_ID" ]]; then
+        kitty @ set-tab-color active_bg="$hex" 2>/dev/null
+    elif [[ -n "$WEZTERM_PANE" ]]; then
+        _wezterm_set_user_var tabcolor "$hex"
+    elif [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+        _iterm_set_tab_color "$hex"
+    else
+        echo -ne "\e]11;$hex\a"
+    fi
+}
+
+# reset the current tab's background color to the config default
+tabcolorreset() {
+    if [[ -n "$KITTY_WINDOW_ID" ]]; then
+        kitty @ set-tab-color active_bg=NONE 2>/dev/null
+    elif [[ -n "$WEZTERM_PANE" ]]; then
+        _wezterm_set_user_var tabcolor ""
+    elif [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+        printf '\033]6;1;bg;*;default\007'
+    else
+        echo -ne "\e]111\a"
+    fi
+}
+
+# set the current tab's title, e.g. tabtitle "my project"
+tabtitle() {
+    if [[ -n "$KITTY_WINDOW_ID" ]]; then
+        kitty @ set-tab-title "$1" 2>/dev/null
+    elif [[ -n "$WEZTERM_PANE" ]]; then
+        wezterm cli set-tab-title "$1" 2>/dev/null
+    else
+        echo -ne "\e]0;$1\a"
+    fi
+}
+
+
+# ----------------------------------------------------------------------
+# Brew
+
+# Only check the formulas
+alias brew-formulas='brew update && brew upgrade --formula && brew cleanup'
+
+# Update all of them at the same time
+brew-apps() {
+  local apps=(
+    beyond-compare
+    claude
+    dbeaver-community
+    figma
+    github
+    gitkraken
+    hammerspoon
+    iterm2
+    mongodb-compass
+    notion
+    obsidian
+    postman
+    slack
+    visual-studio-code
+    zed
+  )
+  brew update --quiet >/dev/null 2>&1
+
+  local -a lines approved
+  lines=("${(@f)$(brew outdated --cask --greedy --verbose "${apps[@]}")}")
+  lines=("${lines[@]:#}")
+
+  if (( ${#lines} == 0 )); then
+    echo "Everything is up to date."
+    return 0
+  fi
+
+  echo "Updates available (${#lines}):"
+  echo
+  local line app answer all=0
+  for line in "${lines[@]}"; do
+    app=${line%% *}
+    echo "$line"
+    if (( all )); then
+      approved+=("$app")
+      continue
+    fi
+    read -k 1 "answer?Update $app? [y/N/a=all/q=quit] "
+    echo
+    case "$answer" in
+      y|Y) approved+=("$app") ;;
+      a|A) approved+=("$app"); all=1 ;;
+      q|Q) break ;;
+    esac
+  done
+
+  if (( ${#approved} == 0 )); then
+    echo
+    echo "Nothing selected. No changes made."
+    return 0
+  fi
+
+  echo
+  echo "Updating: ${approved[*]}"
+  HOMEBREW_CASK_OPTS="--appdir=$HOME/Applications" brew upgrade --cask --greedy "${approved[@]}"
+  local rc=$?
+
+  # Recalcula el contador de actualizaciones del prompt (starship custom.brew)
+  brew-outdated-count --refresh
+  return $rc
+}
+
+# ----------------------------------------------------------------------
+# Others
+
+# list all aliases and functions defined in this file, with descriptions
+al() {
+    local alias_color="$LIGHTCYAN" func_color="$LIGHTGREEN"
+    printf '%b%s%b  %b%s%b\n\n' "$alias_color" "alias" "$NOCOLOR" "$func_color" "function" "$NOCOLOR"
+    {
+        # aliases: "name=value" -> name<TAB>alias<TAB>line
+        alias | awk '{ i = index($0, "="); print substr($0, 1, i - 1) "\talias\t" $0 }'
+        # functions: "name -- comment" -> name<TAB>function<TAB>line
+        awk '
+            /^#[[:space:]]*-+[[:space:]]*$/ { comment=""; next }
+            /^#/ {
+                c = $0
+                sub(/^#[ \t]*/, "", c)
+                comment = c
+                next
+            }
+            /^[a-zA-Z_-]+\(\)/ {
+                name = $0
+                sub(/\(\).*/, "", name)
+                if (comment != "") print name " -- " comment
+                else print name
+                comment = ""
+                next
+            }
+            { comment = "" }
+        ' ~/.bash_aliases | awk '{ n = $0; sub(/ -- .*/, "", n); print n "\tfunction\t" $0 }'
+    } | sort -f -t $'\t' -k1,1 | while IFS=$'\t' read -r name kind line; do
+        if [[ $kind == alias ]]; then
+            printf '%b%s%b\n' "$alias_color" "$line" "$NOCOLOR"
+        else
+            printf '%b%s%b\n' "$func_color" "$line" "$NOCOLOR"
+        fi
+    done
+}
+
+
+# ----------------------------------------------------------------------
+# Prompt (starship)
+# El prompt muestra " — 🔄 (N)" después de la región de AWS, donde N es el número de
+# apps de la lista de brew-apps con actualizaciones
+# se recalcula solo cada hora y al final de brew-apps.
+# Recalcula ahora el contador de actualizaciones del prompt
+alias brew-refresh="brew-outdated-count --refresh"
+
+# ----------------------------------------------------------------------
+# Raspberry
+alias rb="ssh jimmys@raspberry.local"
+
+
+# open ~/.zshrc in using the default editor specified in $EDITOR
+alias ec="zed ~/.zshrc"
+
+# source ~/.zshrc
+alias sc="source ~/.zshrc"

@@ -1,0 +1,15 @@
+// Place your key bindings in this file to override the defaults
+[
+    // Explorer
+    { "key": "cmd+1", "command": "workbench.view.explorer" },
+
+    // Active tab
+    { "key": "cmd+2", "command": "workbench.action.focusActiveEditorGroup" },
+
+    // Terminal
+    { "key": "cmd+3", "command": "workbench.action.terminal.toggleTerminal" },
+
+    // Tabs: Ctrl+PgUp siguiente, Ctrl+PgDn anterior
+    { "key": "ctrl+pageup", "command": "workbench.action.nextEditor" },
+    { "key": "ctrl+pagedown", "command": "workbench.action.previousEditor" }
+]
