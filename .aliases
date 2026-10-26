@@ -429,7 +429,7 @@ al() {
                 next
             }
             { comment = "" }
-        ' ~/.bash_aliases | awk '{ n = $0; sub(/ -- .*/, "", n); print n "\tfunction\t" $0 }'
+        ' ~/dotfiles-gmddk/.aliases | awk '{ n = $0; sub(/ -- .*/, "", n); print n "\tfunction\t" $0 }'
     } | sort -f -t $'\t' -k1,1 | while IFS=$'\t' read -r name kind line; do
         if [[ $kind == alias ]]; then
             printf '%b%s%b\n' "$alias_color" "$line" "$NOCOLOR"
