@@ -1,1 +1,6 @@
 .DS_Store
+
+# Proton watcher: Chrome profile with the logged-in session (never commit), log and Python cache
+proton/proton-perfil/
+proton/*.log
+__pycache__/
