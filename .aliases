@@ -441,8 +441,8 @@ alias sc="source ~/.zshrc"
 alias proton="INTERVALO=300 nohup node ~/dotfiles-gmddk/proton/proton_watch.mjs > /dev/null 2>&1 &"
 
 #To kill it when running on background
-alias killproton="pkill -f proton_watch.mjs"
+alias protonkill="pkill -f proton_watch.mjs"
 
 #To check if the process is running or does it not
 # alias checkproton="pgrep -fl proton_watch.mjs || echo 'Not running'"
-alias checkproton="pgrep -f 'proton_watch.mjs|proton-perfil' >/dev/null && echo 'Something is running' || echo 'All stopped'"
+alias protoncheck="pgrep -f 'proton_watch.mjs|proton-perfil' >/dev/null && echo 'Running' || echo 'Not running'"
