@@ -33,6 +33,14 @@ cdgr() {
     cd ~/Documents/Gameaddik/Repos/"$1"
 }
 
+# Tab completion: cdg/cdgr suggest the folders inside their base directory
+if (( $+functions[compdef] )); then
+    _cdg_complete()  { _path_files -/ -W ~/Documents/Gameaddik }
+    _cdgr_complete() { _path_files -/ -W ~/Documents/Gameaddik/Repos }
+    compdef _cdg_complete cdg
+    compdef _cdgr_complete cdgr
+fi
+
 
 alias cathosts="cat /etc/hosts"
 alias vihosts="sudo vi /etc/hosts"
@@ -86,10 +94,6 @@ gs() {
     echo "${YELLOW}git status${NOCOLOR}"
     git status
 }
-# alias for gs
-gstatus() {
-    gs
-}
 
 # stage files, e.g. ga file1 file2
 ga() {
@@ -109,20 +113,12 @@ gb() {
     echo "${YELLOW}git branch${NOCOLOR}"
     git branch
 }
-# alias for gb
-gbranch() {
-    gb
-}
 
 #list both local and remote branches
 gba() {
     cls
     echo "${YELLOW}git branch -a${NOCOLOR}"
     git branch -a
-}
-# alias for gba
-gbrancha() {
-    gba
 }
 
 #list only remote branches
@@ -131,19 +127,11 @@ gbr() {
     echo "${YELLOW}git branch -r${NOCOLOR}"
     git branch -r
 }
-# alias for gbr
-gbranchr() {
-    gbr
-}
 
-# checkout the given branch
+# checkout the given branch, e.g. gco main or gco -b new-branch
 gco() {
-    echo "${YELLOW}git checkout $1${NOCOLOR}"
-    git checkout "$1"
-}
-# alias for gco
-gcheckout() {
-    gco "$1"
+    echo "${YELLOW}git checkout $*${NOCOLOR}"
+    git checkout "$@"
 }
 
 #list the commits waiting to be pushed
@@ -154,12 +142,8 @@ gcherry() {
 
 # commit staged changes, e.g. gc -m "message"
 gc() {
-    echo "${YELLOW}git commit $1${NOCOLOR}"
+    echo "${YELLOW}git commit $*${NOCOLOR}"
     git commit "$@"
-}
-# alias for gc
-gcommit() {
-    gc "$@"
 }
 
 # show unstaged changes
@@ -180,20 +164,12 @@ gf() {
     echo "${YELLOW}git fetch${NOCOLOR}"
     git fetch
 }
-# alias for gf
-gfetch() {
-    gf
-}
 
 # show commit log, one line per commit
 gl() {
     cls
     echo "${YELLOW}git log --oneline${NOCOLOR}"
     git log --oneline
-}
-# alias for gl
-glog() {
-    gl
 }
 
 # show commit log as a graph, with all branches
@@ -207,10 +183,6 @@ glol() {
 gp() {
     echo "${YELLOW}git pull${NOCOLOR}"
     git pull
-}
-# alias for gp
-gpull() {
-    gp
 }
 
 # push to remote
@@ -231,13 +203,21 @@ gsgb() {
     git submodule foreach 'git branch'
 }
 
+# Tab completion: the functions that take arguments complete like their git command
+# (gco <Tab> suggests branches, ga <Tab> modified files, gc <Tab> commit options)
+if (( $+functions[compdef] )); then
+    compdef _git ga=git-add
+    compdef _git gco=git-checkout
+    compdef _git gc=git-commit
+fi
+
 # forget to create a new branch, and made all your changes in the wrong branch?
 # Moves all your changes to your newly created branch.
 # git switch -c "new_branch"
 
 
 # ----------------------------------------------------------------------
-# Terminal tab customization (iTerm2, auto-detected)
+# Terminal tab customization (iTerm2)
 
 # uses OSC 6, a native iTerm2 feature: it only colors the tab bar, never the terminal content background
 # helper for tabcolor: sets the current tab color from a hex code, e.g. _iterm_set_tab_color "#2d4159"
@@ -294,11 +274,7 @@ tabcolors() {
 tabcolor() {
     local input="${(L)*}"
     local hex="${TABCOLOR_PALETTE[$input]:-$*}"
-    if [[ -n "$KITTY_WINDOW_ID" ]]; then
-        kitty @ set-tab-color active_bg="$hex" 2>/dev/null
-    elif [[ -n "$WEZTERM_PANE" ]]; then
-        _wezterm_set_user_var tabcolor "$hex"
-    elif [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+    if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
         _iterm_set_tab_color "$hex"
     else
         echo -ne "\e]11;$hex\a"
@@ -307,11 +283,7 @@ tabcolor() {
 
 # reset the current tab's background color to the config default
 tabcolorreset() {
-    if [[ -n "$KITTY_WINDOW_ID" ]]; then
-        kitty @ set-tab-color active_bg=NONE 2>/dev/null
-    elif [[ -n "$WEZTERM_PANE" ]]; then
-        _wezterm_set_user_var tabcolor ""
-    elif [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+    if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
         printf '\033]6;1;bg;*;default\007'
     else
         echo -ne "\e]111\a"
@@ -320,13 +292,7 @@ tabcolorreset() {
 
 # set the current tab's title, e.g. tabtitle "my project"
 tabtitle() {
-    if [[ -n "$KITTY_WINDOW_ID" ]]; then
-        kitty @ set-tab-title "$1" 2>/dev/null
-    elif [[ -n "$WEZTERM_PANE" ]]; then
-        wezterm cli set-tab-title "$1" 2>/dev/null
-    else
-        echo -ne "\e]0;$1\a"
-    fi
+    echo -ne "\e]0;$1\a"
 }
 
 
