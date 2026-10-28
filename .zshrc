@@ -10,6 +10,14 @@ autoload -Uz compinit
 # ----------------------------------------------------------------------
 source "/opt/homebrew/opt/fzf-tab/share/fzf-tab/fzf-tab.zsh"
 
+# ----------------------------------------------------------------------
+# History
+# ----------------------------------------------------------------------
+# macOS (/etc/zshrc) only keeps 1000 lines; keep 50000 and save the date of each command
+HISTSIZE=50000
+SAVEHIST=50000
+setopt EXTENDED_HISTORY
+
 
 # ----------------------------------------------------------------------
 # Aliases
