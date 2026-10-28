@@ -25,3 +25,11 @@ command = 'cat "${XDG_CACHE_HOME:-$HOME/.cache}/brew-outdated-count"'
 shell = ["sh"]
 format = '[— 🔄 \($output\)]($style) '
 style = "bold yellow"
+
+# Correos no leídos en Proton Mail: " — 📬 (N)" (oculto si es 0 o si proton_watch.mjs no está corriendo)
+[custom.proton]
+when = '[ -s "${XDG_CACHE_HOME:-$HOME/.cache}/proton-unread-count" ]'
+command = 'cat "${XDG_CACHE_HOME:-$HOME/.cache}/proton-unread-count"'
+shell = ["sh"]
+format = '[— 📬 \($output\)]($style) '
+style = "bold cyan"

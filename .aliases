@@ -430,3 +430,15 @@ alias ec="zed ~/.zshrc"
 
 # source ~/.zshrc
 alias sc="source ~/.zshrc"
+
+# Run in a window - kill it with "Ctrl+C"
+# alias proton="INTERVALO=300 node ~/Documents/scripts/prtn/proton_watch.mjs"
+
+# Messages send it to a log file to be checked
+# alias proton="INTERVALO=300 nohup node ~/Documents/scripts/prtn/proton_watch.mjs > ~/Documents/scripts/prtn/proton_watch.log 2>&1 &"
+
+# Run on background
+alias proton="INTERVALO=300 nohup node ~/Documents/scripts/prtn/proton_watch.mjs > /dev/null 2>&1 &"
+
+#To kill it when running on background
+alias killproton="pkill -f proton_watch.mjs"
