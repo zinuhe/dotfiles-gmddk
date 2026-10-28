@@ -445,4 +445,4 @@ alias killproton="pkill -f proton_watch.mjs"
 
 #To check if the process is running or does it not
 # alias checkproton="pgrep -fl proton_watch.mjs || echo 'Not running'"
-alias checkproton="pgrep -f 'proton_watch.mjs|proton-perfil' >/dev/null && echo 'Something is running' || echo 'All stoped'"
+alias checkproton="pgrep -f 'proton_watch.mjs|proton-perfil' >/dev/null && echo 'Something is running' || echo 'All stopped'"
