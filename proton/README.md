@@ -46,8 +46,8 @@ Alias definidos en `.aliases`:
 | Alias | Qué hace |
 |---|---|
 | `proton` | Arranca el watcher en segundo plano, revisando cada 5 minutos |
-| `killproton` | Lo para |
-| `checkproton` | Dice si queda algo corriendo (el watcher o su Brave) |
+| `protonkill` | Lo para |
+| `protoncheck` | Dice si queda algo corriendo (el watcher o su Brave) |
 
 Sin alias:
 
@@ -75,10 +75,11 @@ Variables de entorno:
 
 ## Problemas comunes
 
-- **El sobre no aparece:** corre `checkproton`. Si dice que no hay nada corriendo, la sesión pudo caducar y el script se cerró solo. Con la salida a `/dev/null` no ves el aviso, así que arráncalo en una pestaña (sin `nohup`) para leerlo.
+- **El sobre no aparece:** corre `protoncheck`. Si dice que no hay nada corriendo, la sesión pudo caducar y el script se cerró solo. Con la salida a `/dev/null` no ves el aviso, así que arráncalo en una pestaña (sin `nohup`) para leerlo.
 - **"La sesión no está iniciada o caducó":** repite el paso de `--login`.
 - **"Brave no arrancó":** hay un Brave usando `proton-perfil-brave/`, normalmente el del `--login`. Sal de él con `Cmd + Q`.
 - **"No encuentro Brave":** instálalo con `brew install --cask brave-browser`.
+- **"Se perdió la conexión con Brave. Reconectando...":** no es un error. Brave cerró o descartó la pestaña de Proton y el script abrió otra. Solo usa una pestaña: al arrancar cierra las que Brave restaura de la sesión del `--login`.
 - **Aparece "?" en vez del remitente, o la bandeja nunca termina de cargar:** Proton cambió el HTML de su web. Hay que actualizar los selectores de `EXTRAER` en `proton_watch.mjs` (`data-shortcut-target="item-container"`, la clase `unread` y los `data-testid` de remitente y asunto).
 - Solo cuenta los no leídos de la **primera página** de la bandeja de entrada.
 - Avisa una sola vez por correo: si marcas como no leído un correo que ya avisó, no vuelve a avisar.

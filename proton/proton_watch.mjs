@@ -67,14 +67,29 @@ async function arrancarBrave() {
   process.on("SIGINT", () => process.exit(0));
   process.on("SIGTERM", () => process.exit(0));
   process.on("SIGHUP", () => process.exit(0));
+  brave.on("exit", () => {
+    console.error(`[${hora()}] Brave se cerró.`);
+    process.exit(1);
+  });
 
   for (let i = 0; !existsSync(puertoFich); i++) {
     if (i > 100) throw new Error("Brave no arrancó. ¿Tienes abierta la ventana de --login? Ciérrala primero.");
     await dormir(200);
   }
-  const puerto = readFileSync(puertoFich, "utf8").split("\n")[0];
-  const paginas = await (await fetch(`http://127.0.0.1:${puerto}/json/list`)).json();
-  return conectarCDP(paginas.find((p) => p.type === "page").webSocketDebuggerUrl);
+  return readFileSync(puertoFich, "utf8").split("\n")[0];
+}
+
+// Brave restaura las pestañas que quedaron abiertas en el --login. Las de fondo se congelan
+// o se descartan (y al descartarse se corta la conexión), así que se usa una sola pestaña
+// de Proton, se cierran las demás y se pone al frente.
+async function conectar(puerto) {
+  const base = `http://127.0.0.1:${puerto}`;
+  const paginas = (await (await fetch(`${base}/json/list`)).json()).filter((p) => p.type === "page");
+  const pagina = paginas.find((p) => p.url.includes("proton.me"))
+    || await (await fetch(`${base}/json/new?${URL_INBOX}`, { method: "PUT" })).json();
+  for (const p of paginas) if (p.id !== pagina.id) await fetch(`${base}/json/close/${p.id}`);
+  await fetch(`${base}/json/activate/${pagina.id}`);
+  return conectarCDP(pagina.webSocketDebuggerUrl);
 }
 
 function conectarCDP(wsUrl) {
@@ -88,9 +103,22 @@ function conectarCDP(wsUrl) {
     pendientes.delete(msg.id);
     msg.error ? p.reject(new Error(msg.error.message)) : p.resolve(msg.result);
   };
+  // Si la conexión se corta, las peticiones pendientes fallan en vez de esperar para siempre
+  ws.onclose = () => {
+    for (const p of pendientes.values()) p.reject(new Error("Se perdió la conexión con Brave"));
+    pendientes.clear();
+  };
   const enviar = (method, params = {}) => new Promise((resolve, reject) => {
+    if (ws.readyState !== WebSocket.OPEN) return reject(new Error("Se perdió la conexión con Brave"));
     const id = ++siguienteId;
-    pendientes.set(id, { resolve, reject });
+    const timer = setTimeout(() => {
+      pendientes.delete(id);
+      reject(new Error("Brave no respondió"));
+    }, 30000);
+    pendientes.set(id, {
+      resolve: (v) => { clearTimeout(timer); resolve(v); },
+      reject: (e) => { clearTimeout(timer); reject(e); },
+    });
     ws.send(JSON.stringify({ id, method, params }));
   });
   return new Promise((resolve, reject) => {
@@ -125,7 +153,8 @@ async function leer(enviar, { comprobarSesion = true } = {}) {
 }
 
 async function vigilar() {
-  const enviar = await arrancarBrave();
+  const puerto = await arrancarBrave();
+  let enviar = await conectar(puerto);
   // Esperar a que la aplicación de Proton cargue la bandeja (hasta 90 s). Mientras carga
   // puede pasar por account.proton.me, así que la sesión solo se comprueba al final.
   let estado;
@@ -142,7 +171,14 @@ async function vigilar() {
   console.log(`[${hora()}] Vigilando Proton Mail cada ${INTERVALO / 1000}s (${vistos.size} no leídos ya en la bandeja)`);
   for (;;) {
     await dormir(INTERVALO);
-    const { noLeidos } = await leer(enviar);
+    let noLeidos;
+    try {
+      ({ noLeidos } = await leer(enviar));
+    } catch (e) {
+      console.error(`[${hora()}] ${e.message}. Reconectando...`);
+      enviar = await conectar(puerto);
+      continue;
+    }
     guardarContador(noLeidos.length);
     for (const c of noLeidos) {
       if (vistos.has(c.id)) continue;
