@@ -2,15 +2,16 @@
 
 Vigila la bandeja de entrada de Proton Mail en segundo plano y muestra en el prompt de la terminal cuántos correos no leídos hay: `— 📬 (N)`, igual que el `— 🔄 (N)` de las actualizaciones de brew.
 
-No usa Proton Mail Bridge ni dependencias de npm. `proton_watch.mjs` abre el Google Chrome instalado sin ventana (modo headless), usa una sesión de Proton guardada en su propio perfil y lee la bandeja cada cierto tiempo.
+No usa Proton Mail Bridge ni dependencias de npm. `proton_watch.mjs` abre Brave sin ventana (modo headless), usa una sesión de Proton guardada en su propio perfil y lee la bandeja cada cierto tiempo.
+
+**Por qué Brave y no Google Chrome:** con un segundo Chrome invisible, macOS ve dos apps "Google Chrome" y a veces manda los links de Slack y otras apps a la instancia invisible, así que no se abren. Brave es otra app, así que nunca los recibe. **Usa Brave solo para esto**, no como navegador.
 
 ## Archivos
 
 | Archivo | Para qué sirve |
 |---|---|
 | `proton_watch.mjs` | El script que vigila la bandeja |
-| `proton_watch.py` | Versión alternativa por IMAP, para quien tenga Proton Mail Bridge (plan de pago). No se usa |
-| `proton-perfil/` | Perfil de Chrome con la sesión de Proton. Se crea con `--login`. **No está en el repo** (`.gitignore`) |
+| `proton-perfil-brave/` | Perfil de Brave con la sesión de Proton. Se crea con `--login`. **No está en el repo** (`.gitignore`) |
 
 ## Instalar en una Mac nueva
 
@@ -20,7 +21,10 @@ Requisitos que **no** están en el repo:
 ```bash
 brew install node
 ```
-2. **Google Chrome en `/Applications`.** El script busca Chrome en `/Applications/Google Chrome.app`.
+2. **Brave.** El script lo busca en `~/Applications/Brave Browser.app` (donde lo instala `brew-apps`) y después en `/Applications`:
+```bash
+brew install --cask brave-browser
+```
 3. **Starship**, para ver el sobre en el prompt (ver la sección de Starship en `macsync/README.md`).
 
 Después:
@@ -30,10 +34,10 @@ Después:
 ```bash
 node ~/dotfiles-gmddk/proton/proton_watch.mjs --login
 ```
-Se abre una ventana de Chrome normal. Inicia sesión (con CAPTCHA y 2FA si los pide) y, cuando veas tu bandeja de entrada, **sal de Chrome con `Cmd + Q`**. En macOS, cerrar la ventana no cierra Chrome, y mientras siga abierto el perfil queda bloqueado.
+Se abre una ventana de Brave normal. Inicia sesión (con CAPTCHA y 2FA si los pide) y, cuando veas tu bandeja de entrada, **sal de Brave con `Cmd + Q`**. En macOS, cerrar la ventana no cierra Brave, y mientras siga abierto el perfil queda bloqueado.
 3. Arranca el watcher con el alias `proton` (o a mano, ver más abajo).
 
-**No copies `proton-perfil/` de otra Mac.** Chrome en macOS cifra las cookies con una clave guardada en el Llavero de cada Mac, así que la sesión copiada no funciona en otra máquina. Además contiene tu sesión de Proton: trátala como una contraseña.
+**No copies `proton-perfil-brave/` de otra Mac.** Brave en macOS cifra las cookies con una clave guardada en el Llavero de cada Mac, así que la sesión copiada no funciona en otra máquina. Además contiene tu sesión de Proton: trátala como una contraseña.
 
 ## Uso
 
@@ -43,7 +47,7 @@ Alias definidos en `.aliases`:
 |---|---|
 | `proton` | Arranca el watcher en segundo plano, revisando cada 5 minutos |
 | `killproton` | Lo para |
-| `checkproton` | Dice si queda algo corriendo (el watcher o su Chrome) |
+| `checkproton` | Dice si queda algo corriendo (el watcher o su Brave) |
 
 Sin alias:
 
@@ -60,7 +64,7 @@ Variables de entorno:
 | Variable | Por defecto | Qué hace |
 |---|---|---|
 | `INTERVALO` | `60` | Segundos entre revisiones |
-| `PROTON_PERFIL` | `proton-perfil/` junto al script | Carpeta del perfil de Chrome con la sesión |
+| `PROTON_PERFIL` | `proton-perfil-brave/` junto al script | Carpeta del perfil de Brave con la sesión |
 
 ## Cómo llega el número al prompt
 
@@ -73,7 +77,8 @@ Variables de entorno:
 
 - **El sobre no aparece:** corre `checkproton`. Si dice que no hay nada corriendo, la sesión pudo caducar y el script se cerró solo. Con la salida a `/dev/null` no ves el aviso, así que arráncalo en una pestaña (sin `nohup`) para leerlo.
 - **"La sesión no está iniciada o caducó":** repite el paso de `--login`.
-- **"Chrome no arrancó":** hay un Chrome usando `proton-perfil/`, normalmente el del `--login`. Sal de él con `Cmd + Q`.
+- **"Brave no arrancó":** hay un Brave usando `proton-perfil-brave/`, normalmente el del `--login`. Sal de él con `Cmd + Q`.
+- **"No encuentro Brave":** instálalo con `brew install --cask brave-browser`.
 - **Aparece "?" en vez del remitente, o la bandeja nunca termina de cargar:** Proton cambió el HTML de su web. Hay que actualizar los selectores de `EXTRAER` en `proton_watch.mjs` (`data-shortcut-target="item-container"`, la clase `unread` y los `data-testid` de remitente y asunto).
 - Solo cuenta los no leídos de la **primera página** de la bandeja de entrada.
 - Avisa una sola vez por correo: si marcas como no leído un correo que ya avisó, no vuelve a avisar.
