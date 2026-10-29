@@ -1,15 +1,20 @@
 #!/usr/bin/env node
-// Vigila la bandeja de entrada de Proton Mail usando el Google Chrome instalado,
-// sin dependencias: Node habla directamente con Chrome por el protocolo DevTools.
+// Vigila la bandeja de entrada de Proton Mail usando Brave en segundo plano,
+// sin dependencias: Node habla directamente con Brave por el protocolo DevTools.
 //
-//   node proton_watch.mjs --login   abre una ventana de Chrome para que inicies sesión a mano
+// Usa Brave y no Google Chrome a propósito: si fuera Chrome, macOS vería dos apps
+// "Google Chrome" y a veces mandaría los links de Slack y otras apps a esta instancia
+// invisible en vez de a tu Chrome de trabajo. Brave es otra app, así que nunca los recibe.
+// Por eso Brave debe usarse solo para esto, no como navegador.
+//
+//   node proton_watch.mjs --login   abre una ventana de Brave para que inicies sesión a mano
 //                                   (sal con Cmd+Q cuando veas tu bandeja de entrada)
 //   node proton_watch.mjs           vigila en segundo plano (sin ventana) e imprime los correos nuevos
 //
 // Variables de entorno opcionales:
 //   INTERVALO      segundos entre revisiones (60 por defecto)
-//   PROTON_PERFIL  carpeta del perfil de Chrome donde se guarda la sesión
-//                  (por defecto ./proton-perfil junto a este script)
+//   PROTON_PERFIL  carpeta del perfil de Brave donde se guarda la sesión
+//                  (por defecto ./proton-perfil-brave junto a este script)
 //
 // Mientras corre, guarda el número de no leídos en ~/.cache/proton-unread-count
 // (solo si es mayor que 0) para que el prompt de Starship lo muestre como 📬 (N).
@@ -20,9 +25,13 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+// brew-apps instala en ~/Applications; si no está ahí, se busca en /Applications
+const BRAVE = [
+  join(homedir(), "Applications/Brave Browser.app/Contents/MacOS/Brave Browser"),
+  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+].find(existsSync);
 const URL_INBOX = "https://mail.proton.me/u/0/inbox";
-const PERFIL = process.env.PROTON_PERFIL || join(dirname(fileURLToPath(import.meta.url)), "proton-perfil");
+const PERFIL = process.env.PROTON_PERFIL || join(dirname(fileURLToPath(import.meta.url)), "proton-perfil-brave");
 const INTERVALO = Number(process.env.INTERVALO || 60) * 1000;
 const CONTADOR = join(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "proton-unread-count");
 
@@ -39,20 +48,20 @@ function guardarContador(n) {
 }
 
 function login() {
-  console.log("Inicia sesión en la ventana de Chrome y, cuando veas tu bandeja de entrada, sal de Chrome con Cmd+Q.");
-  const chrome = spawn(CHROME, [`--user-data-dir=${PERFIL}`, "--no-first-run", "--no-default-browser-check", URL_INBOX], { stdio: "ignore" });
-  chrome.on("exit", () => console.log("Listo. Ahora ejecuta: node proton_watch.mjs"));
+  console.log("Inicia sesión en la ventana de Brave y, cuando veas tu bandeja de entrada, sal de Brave con Cmd+Q.");
+  const brave = spawn(BRAVE, [`--user-data-dir=${PERFIL}`, "--no-first-run", "--no-default-browser-check", URL_INBOX], { stdio: "ignore" });
+  brave.on("exit", () => console.log("Listo. Ahora ejecuta: node proton_watch.mjs"));
 }
 
-async function arrancarChrome() {
+async function arrancarBrave() {
   const puertoFich = join(PERFIL, "DevToolsActivePort");
   rmSync(puertoFich, { force: true });
-  const chrome = spawn(CHROME, [
+  const brave = spawn(BRAVE, [
     `--user-data-dir=${PERFIL}`, "--headless=new", "--remote-debugging-port=0",
     "--no-first-run", "--no-default-browser-check", URL_INBOX,
   ], { stdio: "ignore" });
   process.on("exit", () => {
-    chrome.kill();
+    brave.kill();
     guardarContador(0);
   });
   process.on("SIGINT", () => process.exit(0));
@@ -60,7 +69,7 @@ async function arrancarChrome() {
   process.on("SIGHUP", () => process.exit(0));
 
   for (let i = 0; !existsSync(puertoFich); i++) {
-    if (i > 100) throw new Error("Chrome no arrancó. ¿Tienes abierta la ventana de --login? Ciérrala primero.");
+    if (i > 100) throw new Error("Brave no arrancó. ¿Tienes abierta la ventana de --login? Ciérrala primero.");
     await dormir(200);
   }
   const puerto = readFileSync(puertoFich, "utf8").split("\n")[0];
@@ -86,7 +95,7 @@ function conectarCDP(wsUrl) {
   });
   return new Promise((resolve, reject) => {
     ws.onopen = () => resolve(enviar);
-    ws.onerror = () => reject(new Error("No se pudo conectar con Chrome"));
+    ws.onerror = () => reject(new Error("No se pudo conectar con Brave"));
   });
 }
 
@@ -116,7 +125,7 @@ async function leer(enviar, { comprobarSesion = true } = {}) {
 }
 
 async function vigilar() {
-  const enviar = await arrancarChrome();
+  const enviar = await arrancarBrave();
   // Esperar a que la aplicación de Proton cargue la bandeja (hasta 90 s). Mientras carga
   // puede pasar por account.proton.me, así que la sesión solo se comprueba al final.
   let estado;
@@ -143,5 +152,9 @@ async function vigilar() {
   }
 }
 
+if (!BRAVE) {
+  console.error("No encuentro Brave en ~/Applications ni en /Applications. Instálalo con: brew install --cask brave-browser");
+  process.exit(1);
+}
 if (process.argv.includes("--login")) login();
 else vigilar().catch((e) => { console.error(e.message); process.exit(1); });

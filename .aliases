@@ -312,6 +312,7 @@ alias brew-formulas='brew update && brew upgrade --formula && brew cleanup'
 brew-apps() {
   local apps=(
     beyond-compare
+    brave-browser
     claude
     dbeaver-community
     figma
