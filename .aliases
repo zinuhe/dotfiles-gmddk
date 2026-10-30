@@ -26,6 +26,29 @@ lss() {
     ls -ldh -G "${matches[@]}"
 }
 
+# List repos with current branch: ↑ = local changes not on remote, ↓ = remote has commits you don't have
+# Use `lslb -f` to fetch every repo first (in parallel) so ↓ is up to date
+lsbranchs() {
+  local fetch=0 d b mark counts ahead behind
+  [[ $1 == -f ]] && fetch=1
+  if (( fetch )); then
+    setopt local_options no_monitor no_notify
+    for d in */; do [[ -e $d/.git ]] && git -C "$d" fetch -q 2>/dev/null & done
+    wait
+  fi
+  for d in */; do
+    d=${d%/}
+    [[ -e $d/.git ]] || { printf "%s\n" "$d"; continue; }
+    b=$(git -C "$d" branch --show-current 2>/dev/null)
+    [[ -z $b ]] && b="detached@$(git -C "$d" rev-parse --short HEAD 2>/dev/null)"
+    ahead=0; behind=0; mark=""
+    counts=$(git -C "$d" rev-list --left-right --count 'HEAD...@{upstream}' 2>/dev/null) && read -r ahead behind <<< "$counts"
+    [[ -n $(git -C "$d" status --porcelain 2>/dev/null) || $ahead -gt 0 ]] && mark+=" ↑"
+    (( behind > 0 )) && mark+=" ↓"
+    printf "\e[1;34m%-22s\e[0m \e[33m%s\e[31m%s\e[0m\n" "$d" "$b" "$mark"
+  done
+}
+
 # ----------------------------------------------------------------------
 # Routes
 
@@ -203,11 +226,7 @@ gundo() {
     git reset --soft HEAD~1
 }
 
-# list branches inside each git submodule
-gsgb() {
-    echo "${YELLOW}git submodule foreach 'git branch'${NOCOLOR}"
-    git submodule foreach 'git branch'
-}
+
 
 # Tab completion: the functions that take arguments complete like their git command
 # (gco <Tab> suggests branches, ga <Tab> modified files, gc <Tab> commit options)
@@ -376,6 +395,12 @@ brew-apps() {
 
 
 # ----------------------------------------------------------------------
+# Mongo DB
+
+
+
+
+# ----------------------------------------------------------------------
 # Raspberry
 alias rb="ssh jimmys@raspberry.local"
 
@@ -420,8 +445,8 @@ al() {
 
 # ----------------------------------------------------------------------
 # Prompt (starship)
-# El prompt muestra " — 🔄 (N)" después de la región de AWS, donde N es el número de
-# apps de la lista de brew-apps con actualizaciones (no aparece nada si es 0).
+# El prompt muestra " — 🔄 (N)" donde N es el número de
+# apps de la lista de brew-apps con actualizaciones
 # Lo calcula ~/.local/bin/brew-outdated-count; se recalcula solo cada hora y al final de brew-apps.
 # Recalcula ahora el contador de actualizaciones del prompt
 alias brew-refresh="brew-outdated-count --refresh"
@@ -441,9 +466,9 @@ alias sc="source ~/.zshrc"
 # Run on background
 alias proton="INTERVALO=300 nohup node ~/dotfiles-gmddk/proton/proton_watch.mjs > /dev/null 2>&1 &"
 
-#To kill it when running on background
+# To kill it when running on background
 alias protonkill="pkill -f proton_watch.mjs"
 
-#To check if the process is running or does it not
-# alias checkproton="pgrep -fl proton_watch.mjs || echo 'Not running'"
+# To check if the process is running or does it not
+# alias protoncheck="pgrep -fl proton_watch.mjs || echo 'Not running'"
 alias protoncheck="pgrep -f 'proton_watch.mjs|proton-perfil' >/dev/null && echo 'Running' || echo 'Not running'"
