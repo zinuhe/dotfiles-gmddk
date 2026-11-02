@@ -26,10 +26,10 @@ lss() {
     ls -ldh -G "${matches[@]}"
 }
 
-# List repos with current branch: ↑ = local changes not on remote, ↓ = remote has commits you don't have
+# List repos with current branch: ↑ = local work not on remote (N = commits ahead, * = uncommitted changes), ↓N = N commits behind remote
 # Use `lslb -f` to fetch every repo first (in parallel) so ↓ is up to date
 lsbranchs() {
-  local fetch=0 d b mark counts ahead behind
+  local fetch=0 d b mark counts ahead behind dirty
   [[ $1 == -f ]] && fetch=1
   if (( fetch )); then
     setopt local_options no_monitor no_notify
@@ -41,14 +41,48 @@ lsbranchs() {
     [[ -e $d/.git ]] || { printf "%s\n" "$d"; continue; }
     b=$(git -C "$d" branch --show-current 2>/dev/null)
     [[ -z $b ]] && b="detached@$(git -C "$d" rev-parse --short HEAD 2>/dev/null)"
-    ahead=0; behind=0; mark=""
+    ahead=0; behind=0; dirty=0; mark=""
     counts=$(git -C "$d" rev-list --left-right --count 'HEAD...@{upstream}' 2>/dev/null) && read -r ahead behind <<< "$counts"
-    [[ -n $(git -C "$d" status --porcelain 2>/dev/null) || $ahead -gt 0 ]] && mark+=" ↑"
-    (( behind > 0 )) && mark+=" ↓"
+    [[ -n $(git -C "$d" status --porcelain 2>/dev/null) ]] && dirty=1
+    if (( ahead > 0 || dirty )); then
+      mark+=" ↑"
+      (( ahead > 0 )) && mark+="$ahead"
+      (( dirty )) && mark+="*"
+    fi
+    (( behind > 0 )) && mark+=" ↓$behind"
     printf "\e[1;34m%-22s\e[0m \e[33m%s\e[31m%s\e[0m\n" "$d" "$b" "$mark"
   done
 }
 
+# git pull (fast-forward only) in every repo that is on `develop`, clean, and behind its remote
+# Skips repos with local changes or unpushed commits. Use `pulldev -n` for a dry run (shows what it would do)
+pulldev() {
+  local dry=0 d b counts ahead behind
+  [[ $1 == -n ]] && dry=1
+  setopt local_options no_monitor no_notify
+  for d in */; do [[ -e $d/.git ]] && git -C "$d" fetch -q 2>/dev/null & done
+  wait
+  for d in */; do
+    d=${d%/}
+    [[ -e $d/.git ]] || continue
+    b=$(git -C "$d" branch --show-current 2>/dev/null)
+    [[ $b == develop ]] || continue
+    counts=$(git -C "$d" rev-list --left-right --count 'HEAD...@{upstream}' 2>/dev/null) || continue
+    read -r ahead behind <<< "$counts"
+    (( behind > 0 )) || continue
+    if [[ -n $(git -C "$d" status --porcelain 2>/dev/null) ]]; then
+      printf "\e[33m%-22s\e[0m skipped: local changes (↓%s)\n" "$d" "$behind"
+    elif (( ahead > 0 )); then
+      printf "\e[33m%-22s\e[0m skipped: local commits not pushed (↑%s ↓%s)\n" "$d" "$ahead" "$behind"
+    elif (( dry )); then
+      printf "\e[36m%-22s\e[0m would pull ↓%s\n" "$d" "$behind"
+    elif git -C "$d" pull --ff-only -q 2>/dev/null; then
+      printf "\e[32m%-22s\e[0m pulled ↓%s\n" "$d" "$behind"
+    else
+      printf "\e[31m%-22s\e[0m pull failed\n" "$d"
+    fi
+  done
+}
 # ----------------------------------------------------------------------
 # Routes
 
