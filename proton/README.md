@@ -75,11 +75,12 @@ Variables de entorno:
 
 ## Problemas comunes
 
-- **El sobre no aparece:** corre `protoncheck`. Si dice que no hay nada corriendo, la sesión pudo caducar y el script se cerró solo. Con la salida a `/dev/null` no ves el aviso, así que arráncalo en una pestaña (sin `nohup`) para leerlo.
+- **El sobre no aparece, o muestra un número raro:** corre `protoncheck`. Si dice que no hay nada corriendo, la sesión pudo caducar y el script se cerró solo. El alias `proton` guarda todo lo que pasa en `proton/proton_watch.log` (no está en el repo): mira ahí con `tail ~/dotfiles-gmddk/proton/proton_watch.log`. Solo se escribe cuando cambia algo, así que es corto.
 - **"La sesión no está iniciada o caducó":** repite el paso de `--login`.
 - **"Brave no arrancó":** hay un Brave usando `proton-perfil-brave/`, normalmente el del `--login`. Sal de él con `Cmd + Q`.
 - **"No encuentro Brave":** instálalo con `brew install --cask brave-browser`.
 - **"Se perdió la conexión con Brave. Reconectando...":** no es un error. Brave cerró o descartó la pestaña de Proton y el script abrió otra. Solo usa una pestaña: al arrancar cierra las que Brave restaura de la sesión del `--login`.
 - **Aparece "?" en vez del remitente, o la bandeja nunca termina de cargar:** Proton cambió el HTML de su web. Hay que actualizar los selectores de `EXTRAER` en `proton_watch.mjs` (`data-shortcut-target="item-container"`, la clase `unread` y los `data-testid` de remitente y asunto).
 - Solo cuenta los no leídos de la **primera página** de la bandeja de entrada.
+- **Protecciones contra lecturas falsas** (una vez salió 📬 (50) con la bandeja vacía, tras una noche con el Mac dormido): solo cuenta filas con id y remitente, solo mira `/inbox` (si la pestaña está en otra vista, vuelve a la bandeja), no acepta que el número suba hasta que la misma lista se repite 10 s después, y si pasa mucho más tiempo del `INTERVALO` entre dos lecturas (el Mac durmió) recarga la página antes de leer. Cada una de estas decisiones queda en el log.
 - Avisa una sola vez por correo: si marcas como no leído un correo que ya avisó, no vuelve a avisar.

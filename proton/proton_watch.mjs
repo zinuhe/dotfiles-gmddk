@@ -127,27 +127,69 @@ function conectarCDP(wsUrl) {
   });
 }
 
-// Se ejecuta dentro de la página de Proton: lista los correos no leídos visibles en la bandeja
+// Se ejecuta dentro de la página de Proton: lista los correos no leídos visibles en la bandeja.
+// Solo cuenta filas reales (con id y remitente): mientras la lista carga o se resincroniza
+// Proton puede dibujar hasta 50 filas (una página entera) que aún no son correos de verdad.
 const EXTRAER = `(() => {
   const filas = [...document.querySelectorAll('[data-shortcut-target="item-container"]')];
   const texto = (f, sel) => f.querySelector(sel)?.textContent?.trim() || '';
   return {
     url: location.href,
+    esInbox: location.pathname.endsWith('/inbox'),
     lista: !!document.querySelector('[data-shortcut-target="item-container"], .empty-view, [data-testid*="empty"]'),
     noLeidos: filas.filter((f) => f.classList.contains('unread')).map((f) => ({
       id: f.dataset.elementId,
       de: texto(f, '[data-testid="message-column:sender-address"]') || texto(f, '[data-testid*="sender"]'),
       asunto: texto(f, '[data-testid="message-column:subject"]') || texto(f, '[data-testid*="subject"]'),
-    })),
+    })).filter((c) => c.id && c.de),
   };
 })()`;
 
 async function leer(enviar, { comprobarSesion = true } = {}) {
   const { result } = await enviar("Runtime.evaluate", { expression: EXTRAER, returnByValue: true });
   const estado = result.value;
-  if (comprobarSesion && !estado.url.startsWith("https://mail.proton.me")) {
+  // Sin conexión Brave muestra una página de error: no es una sesión caducada, se arregla al volver la red
+  if (comprobarSesion && !estado.url.startsWith("https://mail.proton.me") && !estado.url.startsWith("chrome-error:")) {
     console.error(`[${hora()}] La sesión no está iniciada o caducó. Ejecuta: node proton_watch.mjs --login`);
     process.exit(1);
+  }
+  return estado;
+}
+
+const log = (msg) => console.log(`[${hora()}] ${msg}`);
+const mismosIds = (a, b) => a.length === b.length && a.every((c) => b.some((d) => d.id === c.id));
+
+// Esperar a que la aplicación de Proton cargue la bandeja (hasta 90 s). Mientras carga
+// puede pasar por account.proton.me, así que la sesión solo se comprueba al final.
+async function esperarBandeja(enviar) {
+  for (let i = 0; i < 45; i++) {
+    await dormir(2000);
+    if ((await leer(enviar, { comprobarSesion: false })).lista) return;
+  }
+  await leer(enviar); // si la sesión caducó, avisa y sale
+  throw new Error("La bandeja de entrada no terminó de cargar.");
+}
+
+// Devuelve una lectura fiable de la bandeja, o null si no se pudo confirmar. Solo se acepta
+// que el contador suba si la misma lista se repite 10 s después: así no se cuela una lista a medio cargar.
+async function leerEstable(enviar, aceptado) {
+  let estado = await leer(enviar);
+  if (!estado.esInbox) {
+    log(`La pestaña no estaba en la bandeja de entrada (${estado.url.split("?")[0]}). Volviendo a ella.`);
+    await enviar("Page.navigate", { url: URL_INBOX });
+    await dormir(5000);
+    await esperarBandeja(enviar);
+    estado = await leer(enviar);
+  }
+  for (let i = 0; i < 3 && estado.esInbox && estado.noLeidos.length > aceptado; i++) {
+    await dormir(10000);
+    const otro = await leer(enviar);
+    if (otro.esInbox && mismosIds(estado.noLeidos, otro.noLeidos)) return otro;
+    estado = otro;
+  }
+  if (!estado.esInbox || estado.noLeidos.length > aceptado) {
+    log(`Lectura descartada: ${estado.noLeidos.length} no leídos que no se repiten (se mantiene ${aceptado}).`);
+    return null;
   }
   return estado;
 }
@@ -155,35 +197,41 @@ async function leer(enviar, { comprobarSesion = true } = {}) {
 async function vigilar() {
   const puerto = await arrancarBrave();
   let enviar = await conectar(puerto);
-  // Esperar a que la aplicación de Proton cargue la bandeja (hasta 90 s). Mientras carga
-  // puede pasar por account.proton.me, así que la sesión solo se comprueba al final.
-  let estado;
-  for (let i = 0; i < 45; i++) {
-    await dormir(2000);
-    estado = await leer(enviar, { comprobarSesion: false });
-    if (estado.lista) break;
-  }
-  estado = await leer(enviar);
-  if (!estado.lista) throw new Error("La bandeja de entrada no terminó de cargar.");
+  await esperarBandeja(enviar);
+  const inicial = await leerEstable(enviar, 0);
+  if (!inicial) throw new Error("No pude leer una bandeja estable al arrancar.");
 
-  const vistos = new Set(estado.noLeidos.map((c) => c.id));
-  guardarContador(estado.noLeidos.length);
-  console.log(`[${hora()}] Vigilando Proton Mail cada ${INTERVALO / 1000}s (${vistos.size} no leídos ya en la bandeja)`);
+  const vistos = new Set(inicial.noLeidos.map((c) => c.id));
+  let aceptado = inicial.noLeidos.length;
+  guardarContador(aceptado);
+  log(`Vigilando Proton Mail cada ${INTERVALO / 1000}s (${aceptado} no leídos ya en la bandeja)`);
   for (;;) {
+    const antes = Date.now();
     await dormir(INTERVALO);
-    let noLeidos;
+    let lectura;
     try {
-      ({ noLeidos } = await leer(enviar));
+      // El reloj de la pared sigue contando con el Mac dormido y el temporizador no: si pasó
+      // mucho más de lo esperado, la pestaña quedó con datos viejos y se recarga.
+      if (Date.now() - antes > INTERVALO + 60000) {
+        log(`Pasó mucho más tiempo del esperado (${Math.round((Date.now() - antes) / 60000)} min, ¿el Mac durmió?). Recargando la página.`);
+        await enviar("Page.reload", { ignoreCache: true });
+        await dormir(5000);
+        await esperarBandeja(enviar);
+      }
+      lectura = await leerEstable(enviar, aceptado);
     } catch (e) {
-      console.error(`[${hora()}] ${e.message}. Reconectando...`);
+      log(`${e.message}. Reconectando...`);
       enviar = await conectar(puerto);
       continue;
     }
-    guardarContador(noLeidos.length);
-    for (const c of noLeidos) {
+    if (!lectura) continue;
+    if (lectura.noLeidos.length !== aceptado) log(`No leídos: ${aceptado} → ${lectura.noLeidos.length}`);
+    aceptado = lectura.noLeidos.length;
+    guardarContador(aceptado);
+    for (const c of lectura.noLeidos) {
       if (vistos.has(c.id)) continue;
       vistos.add(c.id);
-      console.log(`[${hora()}] 📬 Nuevo correo de ${c.de || "?"}: ${c.asunto || "(sin asunto)"}`);
+      log(`📬 Nuevo correo de ${c.de || "?"}: ${c.asunto || "(sin asunto)"}`);
     }
   }
 }

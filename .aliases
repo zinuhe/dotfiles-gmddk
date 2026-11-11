@@ -498,7 +498,7 @@ alias sc="source ~/.zshrc"
 # alias proton="INTERVALO=300 nohup node ~/dotfiles-gmddk/proton/proton_watch.mjs > ~/dotfiles-gmddk/proton/proton_watch.log 2>&1 &"
 
 # Run on background
-alias proton="INTERVALO=300 nohup node ~/dotfiles-gmddk/proton/proton_watch.mjs > /dev/null 2>&1 &"
+alias proton="INTERVALO=300 nohup node ~/dotfiles-gmddk/proton/proton_watch.mjs >> ~/dotfiles-gmddk/proton/proton_watch.log 2>&1 &"
 
 # To kill it when running on background
 alias protonkill="pkill -f proton_watch.mjs"
