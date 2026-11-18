@@ -45,8 +45,8 @@ Alias definidos en `.aliases`:
 
 | Alias | Qué hace |
 |---|---|
-| `proton` | Arranca el watcher en segundo plano, revisando cada 5 minutos |
-| `protonkill` | Lo para |
+| `proton` | Arranca el watcher en segundo plano, revisando cada 5 minutos. Guarda los mensajes en `proton_watch.log` (solo las últimas 500 líneas). Si ya está corriendo, no hace nada |
+| `protonkill` | Lo para, junto con su Brave |
 | `protoncheck` | Dice si queda algo corriendo (el watcher o su Brave) |
 
 Sin alias:
